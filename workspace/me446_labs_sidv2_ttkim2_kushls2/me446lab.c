@@ -87,8 +87,8 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     L3 = 0.254;
 
     theta1dh = atan2(y,x);
-    theta2dh = PI - acos(((L3*L3) + (L2*L2) - ((z-L1)*(z-L1) + (x*x) + (y*y))) /(2*L3*L2));
-    theta3dh = (atan((-z+L1)/(sqrt(x*x + y*y))) - acos( (-(L3*L3) + (L2*L2) + (z-L1)*(z-L1) + (x*x) + (y*y))/(2*L2*(sqrt( (z-L1)*(z-L1) + (x*x) + (y*y) ))) ));
+    theta3dh = PI - acos(((L3*L3) + (L2*L2) - ((z-L1)*(z-L1) + (x*x) + (y*y))) /(2*L3*L2));
+    theta2dh = (atan((-z+L1)/(sqrt(x*x + y*y))) - acos( (-(L3*L3) + (L2*L2) + (z-L1)*(z-L1) + (x*x) + (y*y))/(2*L2*(sqrt( (z-L1)*(z-L1) + (x*x) + (y*y) ))) ));
 
     theoretical_TM1 = theta1dh;
     theoretical_TM2 = theta2dh + HALFPI;
