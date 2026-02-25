@@ -142,6 +142,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 void printing(void){
     if (whattoprint == 0) {
         serial_printf(&SerialA, "%.2f %.2f,%.2f   ",printtheta1motor*180/PI,printtheta2motor*180/PI,printtheta3motor*180/PI);
+        serial_printf(&SerialA, "%.2f %.2f,%.2f   ",theta1dh,theta2dh,theta3dh);
         serial_printf(&SerialA, "%.2f %.2f,%.2f   ",printPosXmotor,printPosYmotor,printPosZmotor);
         serial_printf(&SerialA, "%.2f %.2f,%.2f   \n\r",printInvTheta1*180/PI,printInvTheta2*180/PI,printInvTheta3*180/PI);
 
