@@ -86,15 +86,15 @@ float error1_old = 0;
 float error2_old = 0;
 float error3_old = 0;
 
-float Kp1 = 35;
-float Kd1 = 2.2;
-float Ki1 = 0;
-float Kp2 = 35;
-float Kd2 = 2.2;
-float Ki2 = 0;
-float Kp3 = 35;
-float Kd3 = 2.2;
-float Ki3 = 0;
+float Kp1 = 60;
+float Kd1 = 5;
+float Ki1 = 100;
+float Kp2 = 70;
+float Kd2 = 3;
+float Ki2 = 200;
+float Kp3 = 70;
+float Kd3 = 2;
+float Ki3 = 150;
 
 float Ik1_old = 0;
 float Ik1 = 0;
@@ -103,7 +103,17 @@ float Ik2 = 0;
 float Ik3_old = 0;
 float Ik3 = 0;
 
-float windup_parameter = 0;
+float thresh_1 = 0.05;
+float thresh_2= 0.05;
+float thresh_3= 0.05;
+
+float tmod = 0;
+float theta_dot_desired = 0;
+float theta_double_dot_desired = 0;
+
+float J1 = 0.0167;
+float J2 = 0.03;
+float J3 = 0.0128;
 
 void mains_code(void);
 
@@ -141,13 +151,35 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     theoretical_TM3 = theta3dh + theta2dh;
 
 
-    if (mycount % 4000 == 0){
-        if(theta_desired < 0.1){
-            theta_desired = 0.5;
-        } else{
-            theta_desired = 0.0;
-        }
+
+//    if (mycount % 4000 == 0){
+//        if(theta_desired < 0.1){
+//            theta_desired = 0.5;
+//        } else{
+//            theta_desired = 0.0;
+//        }
+//    }
+
+    tmod = ((mycount%6000) *0.001);
+    if (mycount%6000 < 1000 ){
+        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
+        theta_dot_desired = PI*tmod - PI*tmod*tmod;
+        theta_double_dot_desired = PI - 2*PI*tmod;
+    }else if (mycount%6000 < 3000 ){
+        theta_desired = PI/6;
+        theta_dot_desired = 0;
+        theta_double_dot_desired = 0;
+    }else if (mycount%6000 <4000 ){
+        theta_desired = (-40/3)*PI + 12*PI*tmod - (7/2)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
+        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
+        theta_double_dot_desired = -7*PI + 2*PI*tmod;
+    }else if (mycount%6000 <6000 ){
+        theta_desired = 0;
+        theta_dot_desired = 0;
+        theta_double_dot_desired = 0;
     }
+
+
 
     Omega1_raw = (theta1motor - Theta1_old)/0.001;
     Omega1 = (Omega1_raw + Omega1_old1 + Omega1_old2)/3.0;
@@ -175,23 +207,37 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     error2 = theta_desired - theta2motor;
     error3 = theta_desired - theta3motor;
 
-    Ik1 = Ik1_old + ((error1 - error1_old)/2)*0.001;
-    Ik2 = Ik2_old + ((error2 - error2_old)/2)*0.001;
-    Ik3 = Ik3_old + ((error3 - error3_old)/2)*0.001;
+    if(fabs(error1) > thresh_1){
+        Ik1 = 0;
+//        Ik1_old = 0;
+    }
+
+    if(fabs(error2) > thresh_2){
+           Ik2= 0;
+//           Ik2_old = 0;
+       }
+
+    if(fabs(error3) > thresh_3){
+           Ik3 = 0;
+//           Ik3_old = 0;
+       }
+
+    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
+    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
+    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
 
 
     error1_old = error1;
     error2_old = error2;
     error3_old = error3;
-    Ik1_old = Ik1;
-    Ik2_old = Ik2;
-    Ik3_old = Ik3;
 
+//    Ik1_old = Ik1;
+//    Ik2_old = Ik2;
+//    Ik3_old = Ik3;
 
-
-    *tau1 = Kp1*error1 - Kd2*Omega1 + Ki1*Ik1;
-    *tau2 = Kp2*error2 - Kd2*Omega2 + Ki2*Ik2;
-    *tau3 = Kp3*error3 - Kd3*Omega3 + Ki3*Ik3;
+    *tau1 = J1*theta_double_dot_desired + Kp1*error1 - Kd2*(Omega1 - theta_dot_desired) + Ki1*Ik1;
+    *tau2 = J2*theta_double_dot_desired + Kp2*error2 - Kd2*(Omega2 - theta_dot_desired) + Ki2*Ik2;
+    *tau3 = J3*theta_double_dot_desired + Kp3*error3 - Kd3*(Omega3 - theta_dot_desired) + Ki3*Ik3;
 
     //Motor torque limitation(Max: 5 Min: -5)
 
