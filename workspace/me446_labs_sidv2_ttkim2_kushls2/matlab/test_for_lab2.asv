@@ -1,0 +1,44 @@
+pi = 3.1415;
+
+y = [];
+yd = [];
+ydd = [];
+
+for t = 0:0.001:6
+    if t < 1
+    y(end + 1) = (pi/2)*t*t - (pi/3)*t*t*t
+
+    yd = (pi)*t - (pi)*t*t
+
+    ydd = pi + 2*pi*t
+elseif t < 3
+    y = pi/6;
+
+    yd = 0;
+
+    ydd = 0;
+elseif t < 4
+   y  = (pi/2)*t.^2 - (pi/3)*t.^3;
+
+    yd = pi*t - pi*t.^2;
+
+    ydd = pi - 2*pi*t;
+else 
+    y  = 0;
+
+    yd = 0;
+
+    ydd = 0;
+
+    end
+
+
+hold on
+
+plot(t,y,'LineWidth',2)
+grid on
+xlabel('x')
+ylabel('y')
+
+
+end

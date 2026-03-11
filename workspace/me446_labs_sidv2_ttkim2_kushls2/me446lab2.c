@@ -115,6 +115,20 @@ float J1 = 0.0167;
 float J2 = 0.03;
 float J3 = 0.0128;
 
+float x_fun = 0;
+float y_fun = 0;
+float z_fun = 0;
+
+float theta1dh_desired = 0;
+float theta2dh_desired = 0;
+float theta3dh_desired = 0;
+
+float theta1_desired = 0;
+float theta2_desired = 0;
+float theta3_desired = 0;
+
+
+
 void mains_code(void);
 
 //
@@ -151,7 +165,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     theoretical_TM3 = theta3dh + theta2dh;
 
 
-
+// Step Trajectory
 //    if (mycount % 4000 == 0){
 //        if(theta_desired < 0.1){
 //            theta_desired = 0.5;
@@ -160,24 +174,48 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //        }
 //    }
 
-    tmod = ((mycount%6000) *0.001);
-    if (mycount%6000 < 1000 ){
-        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
-        theta_dot_desired = PI*tmod - PI*tmod*tmod;
-        theta_double_dot_desired = PI - 2*PI*tmod;
-    }else if (mycount%6000 < 3000 ){
-        theta_desired = PI/6;
-        theta_dot_desired = 0;
-        theta_double_dot_desired = 0;
-    }else if (mycount%6000 <4000 ){
-        theta_desired = (-40/3)*PI + 12*PI*tmod - (7/2)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
-        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
-        theta_double_dot_desired = -7*PI + 2*PI*tmod;
-    }else if (mycount%6000 <6000 ){
-        theta_desired = 0;
-        theta_dot_desired = 0;
-        theta_double_dot_desired = 0;
-    }
+
+
+
+// Cubic Trajectory
+//    tmod = ((mycount%6000) *0.001);
+//    if (mycount%6000 < 1000 ){
+//        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
+//        theta_dot_desired = PI*tmod - PI*tmod*tmod;
+//        theta_double_dot_desired = PI - 2*PI*tmod;
+//    }else if (mycount%6000 < 3000 ){
+//        theta_desired = PI/6;
+//        theta_dot_desired = 0;
+//        theta_double_dot_desired = 0;
+//    }else if (mycount%6000 <4000 ){
+//        theta_desired = (-13.3333333333)*PI + 12*PI*tmod - (3.5)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
+//        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
+//        theta_double_dot_desired = -7*PI + 2*PI*tmod;
+//    }else if (mycount%6000 <6000 ){
+//        theta_desired = 0;
+//        theta_dot_desired = 0;
+//        theta_double_dot_desired = 0;
+//    }
+
+
+// Fun trajectory
+    tmod = (mycount*0.001);
+
+    y_fun =  0.1*sin(tmod)*sin(tmod);
+    z_fun =  0.1*(cos(tmod) + sin(tmod)) + 0.25;
+    x_fun = 0.254;
+
+
+    theta1dh_desired = atan2(y_fun,x_fun);
+    theta3dh_desired = PI - acos(((L3*L3) + (L2*L2) - ((z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))) /(2*L3*L2));
+    theta2dh_desired = (atan((-z_fun+L1)/(sqrt(x_fun*x_fun + y_fun*y_fun))) - acos( (-(L3*L3) + (L2*L2) + (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))/(2*L2*(sqrt( (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun) ))) ));
+
+    theta1_desired = theta1dh_desired;
+    theta2_desired = theta2dh_desired + HALFPI;
+    theta3_desired = theta3dh_desired + theta2dh_desired;
+
+
+
 
 
 
@@ -203,9 +241,9 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     Omega3_old1 = Omega3;
 
 
-    error1 = theta_desired - theta1motor;
-    error2 = theta_desired - theta2motor;
-    error3 = theta_desired - theta3motor;
+    error1 = theta1_desired - theta1motor;
+    error2 = theta2_desired - theta2motor;
+    error3 = theta3_desired - theta3motor;
 
     if(fabs(error1) > thresh_1){
         Ik1 = 0;
