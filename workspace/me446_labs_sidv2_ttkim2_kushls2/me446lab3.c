@@ -87,13 +87,13 @@ float error2_old = 0;
 float error3_old = 0;
 
 float Kp1 = 60;
-float Kd1 = 5;
+float Kd1 = 11;
 float Ki1 = 100;
 float Kp2 = 70;
-float Kd2 = 3;
+float Kd2 = 9;
 float Ki2 = 200;
 float Kp3 = 70;
-float Kd3 = 2;
+float Kd3 = 9;
 float Ki3 = 150;
 
 float Ik1_old = 0;
@@ -129,25 +129,51 @@ float theta3_desired = 0;
 
 // fric comp lab3
 float fric_c1 = 0;
-float v1pos = 0;
-float v1neg = 0;
-float c1pos = 0;
-float c1neg = 0;
+float v1pos = 0.15;
+float v1neg = 0.235;
+float c1pos = 0.3637;
+float c1neg = -0.2948;
 float slope_between_minimum1 = 3.6; // maybe need to tune
 
 float fric_c2 = 0;
-float v2pos = 0;
-float v2neg = 0;
-float c2pos = 0;
-float c2neg = 0;
+float v2pos = 0.14;
+float v2neg = 0.25;
+float c2pos = 0.4759;
+float c2neg = -0.5031;
 float slope_between_minimum2 = 3.6; // maybe need to tune
 
 float fric_c3 = 0;
-float v3pos = 0;
-float v3neg = 0;
-float c3pos = 0;
-float c3neg = 0;
+float v3pos = 0.15;
+float v3neg = 0.287;
+float c3pos = 0.5339;
+float c3neg = -0.5190;
 float slope_between_minimum3 = 3.6; // maybe need to tune
+
+float a_theta_2 = 0;
+float a_theta_3 = 0;
+
+float Kp_outer_2 = 0;
+float Kd_outer_2 = 0;
+float Kp_outer_3 = 0;
+float Kd_outer_3 = 0;
+
+
+float p1 = 0.03;
+float p2 = 0.0128;
+float p3 = 0.0076;
+float p4 = 0.0753;
+float p5 = 0.0298;
+
+
+float D12 = 0;
+float D21 = 0;
+float C12 = 0;
+float C21 = 0;
+
+
+// Loops Calculation Simplification
+float sintheta2 = 0;
+float costheta3 = 0;
 
 void mains_code(void);
 
@@ -200,41 +226,45 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 // Cubic Trajectory
-//    tmod = ((mycount%6000) *0.001);
-//    if (mycount%6000 < 1000 ){
-//        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
-//        theta_dot_desired = PI*tmod - PI*tmod*tmod;
-//        theta_double_dot_desired = PI - 2*PI*tmod;
-//    }else if (mycount%6000 < 3000 ){
-//        theta_desired = PI/6;
-//        theta_dot_desired = 0;
-//        theta_double_dot_desired = 0;
-//    }else if (mycount%6000 <4000 ){
-//        theta_desired = (-13.3333333333)*PI + 12*PI*tmod - (3.5)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
-//        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
-//        theta_double_dot_desired = -7*PI + 2*PI*tmod;
-//    }else if (mycount%6000 <6000 ){
-//        theta_desired = 0;
-//        theta_dot_desired = 0;
-//        theta_double_dot_desired = 0;
-//    }
+    tmod = ((mycount%6000) *0.001);
+    if (mycount%6000 < 1000 ){
+        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
+        theta_dot_desired = PI*tmod - PI*tmod*tmod;
+        theta_double_dot_desired = PI - 2*PI*tmod;
+    }else if (mycount%6000 < 3000 ){
+        theta_desired = PI/6;
+        theta_dot_desired = 0;
+        theta_double_dot_desired = 0;
+    }else if (mycount%6000 <4000 ){
+        theta_desired = (-13.3333333333)*PI + 12*PI*tmod - (3.5)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
+        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
+        theta_double_dot_desired = -7*PI + 2*PI*tmod;
+    }else if (mycount%6000 <6000 ){
+        theta_desired = 0;
+        theta_dot_desired = 0;
+        theta_double_dot_desired = 0;
+    }
+
+
+
+
 
 
 // Fun trajectory
-    tmod = (mycount*0.001);
-
-    y_fun =  0.1*sin(tmod)*sin(tmod);
-    z_fun =  0.1*(cos(tmod) + sin(tmod)) + 0.25;
-    x_fun = 0.254;
-
-
-    theta1dh_desired = atan2(y_fun,x_fun);
-    theta3dh_desired = PI - acos(((L3*L3) + (L2*L2) - ((z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))) /(2*L3*L2));
-    theta2dh_desired = (atan((-z_fun+L1)/(sqrt(x_fun*x_fun + y_fun*y_fun))) - acos( (-(L3*L3) + (L2*L2) + (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))/(2*L2*(sqrt( (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun) ))) ));
-
-    theta1_desired = theta1dh_desired;
-    theta2_desired = theta2dh_desired + HALFPI;
-    theta3_desired = theta3dh_desired + theta2dh_desired;
+//    tmod = (mycount*0.001);
+//
+//    y_fun =  0.1*sin(tmod)*sin(tmod);
+//    z_fun =  0.1*(cos(tmod) + sin(tmod)) + 0.25;
+//    x_fun = 0.254;
+//
+//
+//    theta1dh_desired = atan2(y_fun,x_fun);
+//    theta3dh_desired = PI - acos(((L3*L3) + (L2*L2) - ((z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))) /(2*L3*L2));
+//    theta2dh_desired = (atan((-z_fun+L1)/(sqrt(x_fun*x_fun + y_fun*y_fun))) - acos( (-(L3*L3) + (L2*L2) + (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))/(2*L2*(sqrt( (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun) ))) ));
+//
+//    theta1_desired = theta1dh_desired;
+//    theta2_desired = theta2dh_desired + HALFPI;
+//    theta3_desired = theta3dh_desired + theta2dh_desired;
 
 
 
@@ -250,13 +280,34 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     Omega3 = (Omega3_raw + Omega3_old1 + Omega3_old2)/3.0;
 
 
-    error1 = theta1_desired - theta1motor;
-    error2 = theta2_desired - theta2motor;
-    error3 = theta3_desired - theta3motor;
+    error1 = theta_desired - theta1motor;
+    error2 = theta_desired - theta2motor;
+    error3 = theta_desired - theta3motor;
 
-    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
-    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
-    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
+//    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
+//    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
+//    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
+
+
+// Saving Computation time
+    D12 = -p3*sin(theta3motor - theta2motor);
+    D21 = -p3*sin(theta3motor - theta2motor);
+    C12 = -p3*cos(theta3motor - theta2motor) * Omega3;
+    C21 = p3*cos(theta3motor - theta2motor) * Omega2;
+
+
+// Outer Loop
+    a_theta_2 = theta_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (Omega2 - theta_dot_desired);
+    a_theta_3 = theta_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (Omega3 - theta_dot_desired);
+
+    sintheta2 = sin(theta2motor);
+    costheta3 = cos(theta3motor);
+
+// Inner Loop
+    Joint_torque2 = p1*a_theta_2 + D12*a_theta_3 + C12*Omega2 - p4*GRAV*sintheta2;
+    Joint_torque3 = p2*a_theta_3 + D21*a_theta_2 + C21*Omega3 - p5*GRAV*costheta3;
+    Joint_torque1 = J1*theta_double_dot_desired + Kp1*error1 - Kd1*(Omega1 - theta_dot_desired);
+
 
 
 // Friction Comp Trajectory
@@ -287,27 +338,27 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 
-// Calculate our Control
+//// Calculate our Integral Windup Control
+//
+//    if(fabs(error1) > thresh_1){
+//        Ik1 = 0;
+////        Ik1_old = 0;
+//    }
+//
+//    if(fabs(error2) > thresh_2){
+//           Ik2= 0;
+////           Ik2_old = 0;
+//       }
+//
+//    if(fabs(error3) > thresh_3){
+//           Ik3 = 0;
+////           Ik3_old = 0;
+//       }
 
-    if(fabs(error1) > thresh_1){
-        Ik1 = 0;
-//        Ik1_old = 0;
-    }
 
-    if(fabs(error2) > thresh_2){
-           Ik2= 0;
-//           Ik2_old = 0;
-       }
-
-    if(fabs(error3) > thresh_3){
-           Ik3 = 0;
-//           Ik3_old = 0;
-       }
-
-
-    *tau1 =  Kp1*error1 - Kd2*(Omega1 - theta_dot_desired) + Ki1*Ik1;
-    *tau2 =  Kp2*error2 - Kd2*(Omega2 - theta_dot_desired) + Ki2*Ik2;
-    *tau3 =  Kp3*error3 - Kd3*(Omega3 - theta_dot_desired) + Ki3*Ik3;
+    *tau1 = Joint_Torque1 + fric_c1;
+    *tau2 = Joint_Torque2 + fric_c2;
+    *tau3 = Joint_Torque3 + fric_c3;
 
 
 
