@@ -165,6 +165,8 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     theoretical_TM3 = theta3dh + theta2dh;
 
 
+    // Compute them trajectories
+
 // Step Trajectory
 //    if (mycount % 4000 == 0){
 //        if(theta_desired < 0.1){
@@ -199,51 +201,49 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 // Fun trajectory
-    tmod = (mycount*0.001);
+//    tmod = (mycount*0.001);
+//
+//    y_fun =  0.1*sin(tmod)*sin(tmod);
+//    z_fun =  0.1*(cos(tmod) + sin(tmod)) + 0.25;
+//    x_fun = 0.254;
+//
+//
+//    theta1dh_desired = atan2(y_fun,x_fun);
+//    theta3dh_desired = PI - acos(((L3*L3) + (L2*L2) - ((z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))) /(2*L3*L2));
+//    theta2dh_desired = (atan((-z_fun+L1)/(sqrt(x_fun*x_fun + y_fun*y_fun))) - acos( (-(L3*L3) + (L2*L2) + (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))/(2*L2*(sqrt( (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun) ))) ));
+//
+//    theta1_desired = theta1dh_desired;
+//    theta2_desired = theta2dh_desired + HALFPI;
+//    theta3_desired = theta3dh_desired + theta2dh_desired;
+//
+//
 
-    y_fun =  0.1*sin(tmod)*sin(tmod);
-    z_fun =  0.1*(cos(tmod) + sin(tmod)) + 0.25;
-    x_fun = 0.254;
 
-
-    theta1dh_desired = atan2(y_fun,x_fun);
-    theta3dh_desired = PI - acos(((L3*L3) + (L2*L2) - ((z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))) /(2*L3*L2));
-    theta2dh_desired = (atan((-z_fun+L1)/(sqrt(x_fun*x_fun + y_fun*y_fun))) - acos( (-(L3*L3) + (L2*L2) + (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun))/(2*L2*(sqrt( (z_fun-L1)*(z_fun-L1) + (x_fun*x_fun) + (y_fun*y_fun) ))) ));
-
-    theta1_desired = theta1dh_desired;
-    theta2_desired = theta2dh_desired + HALFPI;
-    theta3_desired = theta3dh_desired + theta2dh_desired;
-
-
-
-
-
+// Calculate them states
 
     Omega1_raw = (theta1motor - Theta1_old)/0.001;
     Omega1 = (Omega1_raw + Omega1_old1 + Omega1_old2)/3.0;
-    Theta1_old = theta1motor;
-    //order matters here. Why??
-    Omega1_old2 = Omega1_old1;
-    Omega1_old1 = Omega1;
 
     Omega2_raw = (theta2motor - Theta2_old)/0.001;
     Omega2 = (Omega2_raw + Omega2_old1 + Omega2_old2)/3.0;
-    Theta2_old = theta2motor;
-    //order matters here. Why??
-    Omega2_old2 = Omega2_old1;
-    Omega2_old1 = Omega2;
 
     Omega3_raw = (theta3motor - Theta3_old)/0.001;
     Omega3 = (Omega3_raw + Omega3_old1 + Omega3_old2)/3.0;
-    Theta3_old = theta3motor;
-    //order matters here. Why??
-    Omega3_old2 = Omega3_old1;
-    Omega3_old1 = Omega3;
 
 
     error1 = theta1_desired - theta1motor;
     error2 = theta2_desired - theta2motor;
     error3 = theta3_desired - theta3motor;
+
+    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
+    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
+    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
+
+
+
+
+
+// Calculate our Control
 
     if(fabs(error1) > thresh_1){
         Ik1 = 0;
@@ -260,26 +260,71 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //           Ik3_old = 0;
        }
 
-    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
-    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
-    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
-
-
-    error1_old = error1;
-    error2_old = error2;
-    error3_old = error3;
-
-//    Ik1_old = Ik1;
-//    Ik2_old = Ik2;
-//    Ik3_old = Ik3;
 
     *tau1 = J1*theta_double_dot_desired + Kp1*error1 - Kd2*(Omega1 - theta_dot_desired) + Ki1*Ik1;
     *tau2 = J2*theta_double_dot_desired + Kp2*error2 - Kd2*(Omega2 - theta_dot_desired) + Ki2*Ik2;
     *tau3 = J3*theta_double_dot_desired + Kp3*error3 - Kd3*(Omega3 - theta_dot_desired) + Ki3*Ik3;
 
-    //Motor torque limitation(Max: 5 Min: -5)
 
-    // save past states
+
+
+// Saving Past States
+
+    // Update Errors
+    error1_old = error1;
+    error2_old = error2;
+    error3_old = error3;
+
+
+    // Update Omegas
+    Theta1_old = theta1motor;
+    //order matters here. Why??
+    Omega1_old2 = Omega1_old1;
+    Omega1_old1 = Omega1;
+
+    Theta2_old = theta2motor;
+    //order matters here. Why??
+    Omega2_old2 = Omega2_old1;
+    Omega2_old1 = Omega2;
+
+    Theta3_old = theta3motor;
+    //order matters here. Why??
+    Omega3_old2 = Omega3_old1;
+    Omega3_old1 = Omega3;
+
+    // Update our IK values
+
+//    Ik1_old = Ik1;
+//    Ik2_old = Ik2;
+//    Ik3_old = Ik3;
+
+
+//Motor torque limitation(Max: 5 Min: -5)
+
+    if (*tau1 > 5){
+        *tau1 = 5;
+    }
+    else if (*tau1 < -5){
+        *tau1 = -5;
+    }
+
+    if (*tau2 > 5){
+        *tau2 = 5;
+    }
+    else if (*tau2 < -5){
+        *tau2 = -5;
+    }
+
+
+    if (*tau3 > 5){
+        *tau3 = 5;
+    }
+    else if (*tau3 < -5){
+        *tau3 = -5;
+    }
+
+
+    // save more past states
     if ((mycount%50)==0) {
 
         theta1array[arrayindex] = theta1motor;
