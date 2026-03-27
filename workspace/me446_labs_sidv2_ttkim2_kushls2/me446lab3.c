@@ -87,14 +87,14 @@ float error2_old = 0;
 float error3_old = 0;
 
 float Kp1 = 60;
-float Kd1 = 11;
-float Ki1 = 100;
+float Kd1 = 5;
+//float Ki1 = 100;
 float Kp2 = 70;
-float Kd2 = 9;
-float Ki2 = 200;
+float Kd2 = 4;
+//float Ki2 = 200;
 float Kp3 = 70;
-float Kd3 = 9;
-float Ki3 = 150;
+float Kd3 = 4;
+//float Ki3 = 150;
 
 float Ik1_old = 0;
 float Ik1 = 0;
@@ -152,10 +152,10 @@ float slope_between_minimum3 = 3.6; // maybe need to tune
 float a_theta_2 = 0;
 float a_theta_3 = 0;
 
-float Kp_outer_2 = 0;
-float Kd_outer_2 = 0;
-float Kp_outer_3 = 0;
-float Kd_outer_3 = 0;
+float Kp_outer_2 = 1000;
+float Kd_outer_2 = 70;
+float Kp_outer_3 = 1000;
+float Kd_outer_3 = 70;
 
 
 float p1 = 0.03;
@@ -169,6 +169,10 @@ float D12 = 0;
 float D21 = 0;
 float C12 = 0;
 float C21 = 0;
+
+float Joint_torque1 = 0;
+float Joint_torque2 = 0;
+float Joint_torque3 = 0;
 
 
 // Loops Calculation Simplification
@@ -297,16 +301,22 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 // Outer Loop
-    a_theta_2 = theta_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (Omega2 - theta_dot_desired);
-    a_theta_3 = theta_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (Omega3 - theta_dot_desired);
+    a_theta_2 = theta_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (theta_dot_desired - Omega2);
+    a_theta_3 = theta_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (theta_dot_desired - Omega3);
 
     sintheta2 = sin(theta2motor);
     costheta3 = cos(theta3motor);
 
+    Joint_torque1 = J1*theta_double_dot_desired + Kp1*error1 + Kd1*(theta_dot_desired - Omega1);
+
+//    Joint_torque2 = J2*theta_double_dot_desired + Kp2*error2 + Kd2*(theta_dot_desired - Omega2);
+//    Joint_torque3 = J3*theta_double_dot_desired + Kp3*error3 + Kd3*(theta_dot_desired - Omega3);
 // Inner Loop
-    Joint_torque2 = p1*a_theta_2 + D12*a_theta_3 + C12*Omega2 - p4*GRAV*sintheta2;
-    Joint_torque3 = p2*a_theta_3 + D21*a_theta_2 + C21*Omega3 - p5*GRAV*costheta3;
-    Joint_torque1 = J1*theta_double_dot_desired + Kp1*error1 - Kd1*(Omega1 - theta_dot_desired);
+    Joint_torque2 = p1*a_theta_2 + D12*a_theta_3 + C12*Omega3 - p4*GRAV*sintheta2;
+    Joint_torque3 = p2*a_theta_3 + D21*a_theta_2 + C21*Omega2 - p5*GRAV*costheta3;
+
+
+
 
 
 
@@ -356,9 +366,9 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //       }
 
 
-    *tau1 = Joint_Torque1 + fric_c1;
-    *tau2 = Joint_Torque2 + fric_c2;
-    *tau3 = Joint_Torque3 + fric_c3;
+    *tau1 = Joint_torque1 + fric_c1;
+    *tau2 = Joint_torque2 + fric_c2;
+    *tau3 = Joint_torque3 + fric_c3;
 
 
 

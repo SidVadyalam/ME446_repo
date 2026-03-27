@@ -261,7 +261,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
        }
 
 
-    *tau1 = J1*theta_double_dot_desired + Kp1*error1 - Kd2*(Omega1 - theta_dot_desired) + Ki1*Ik1;
+    *tau1 = J1*theta_double_dot_desired + Kp1*error1 - Kd1*(Omega1 - theta_dot_desired) + Ki1*Ik1;
     *tau2 = J2*theta_double_dot_desired + Kp2*error2 - Kd2*(Omega2 - theta_dot_desired) + Ki2*Ik2;
     *tau3 = J3*theta_double_dot_desired + Kp3*error3 - Kd3*(Omega3 - theta_dot_desired) + Ki3*Ik3;
 
