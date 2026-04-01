@@ -87,13 +87,13 @@ float error2_old = 0;
 float error3_old = 0;
 
 float Kp1 = 60;
-float Kd1 = 5;
+float Kd1 = 6;
 //float Ki1 = 100;
 float Kp2 = 70;
-float Kd2 = 4;
+float Kd2 = 5;
 //float Ki2 = 200;
 float Kp3 = 70;
-float Kd3 = 4;
+float Kd3 = 5;
 //float Ki3 = 150;
 
 float Ik1_old = 0;
@@ -127,6 +127,12 @@ float theta1_desired = 0;
 float theta2_desired = 0;
 float theta3_desired = 0;
 
+float theta1_dot_desired = 0;
+float theta1_double_dot_desired = 0;
+float theta3_dot_desired = 0;
+float theta3_double_dot_desired = 0;
+
+
 // fric comp lab3
 float fric_c1 = 0;
 float v1pos = 0.15;
@@ -152,10 +158,10 @@ float slope_between_minimum3 = 3.6; // maybe need to tune
 float a_theta_2 = 0;
 float a_theta_3 = 0;
 
-float Kp_outer_2 = 1000;
-float Kd_outer_2 = 70;
-float Kp_outer_3 = 1000;
-float Kd_outer_3 = 70;
+float Kp_outer_2 = 3500;
+float Kd_outer_2 = 250;
+float Kp_outer_3 = 6000;
+float Kd_outer_3 = 250;
 
 
 float p1 = 0.03;
@@ -173,6 +179,71 @@ float C21 = 0;
 float Joint_torque1 = 0;
 float Joint_torque2 = 0;
 float Joint_torque3 = 0;
+
+float step = 0;
+float step1 = 0;
+float step3 = 0;
+
+int choose_inv_dyn_ctrl = 0;
+
+typedef struct steptraj_s {
+    long double b[5];
+    long double a[5];
+    long double xk[5];
+    long double yk[5];
+    float qd_old;
+    float qddot_old;
+    int size;
+} steptraj_t;
+
+steptraj_t trajectory = {1.4014129239240780e-08L,5.6056516956963121e-08L,8.4084775435444689e-08L,5.6056516956963121e-08L,1.4014129239240780e-08L,
+                        1.0000000000000000e+00L,-3.9129574678536105e+00L,5.7417135544617519e+00L,-3.7445134885345683e+00L,9.1575762615249467e-01L,
+                        0,0,0,0,0,
+                        0,0,0,0,0,
+                        0,
+                        0,
+                        5};
+
+steptraj_t trajectory2 = {1.4014129239240780e-08L,5.6056516956963121e-08L,8.4084775435444689e-08L,5.6056516956963121e-08L,1.4014129239240780e-08L,
+                        1.0000000000000000e+00L,-3.9129574678536105e+00L,5.7417135544617519e+00L,-3.7445134885345683e+00L,9.1575762615249467e-01L,
+                        0,0,0,0,0,
+                        0,0,0,0,0,
+                        0,
+                        0,
+                        5};
+
+// this function must be called every 1ms.
+void implement_discrete_tf(steptraj_t *traj, float step, float *qd, float *qd_dot, float *qd_ddot) {
+    int i = 0;
+
+    traj->xk[0] = step;
+    traj->yk[0] = traj->b[0]*traj->xk[0];
+    for (i = 1;i<traj->size;i++) {
+        traj->yk[0] = traj->yk[0] + traj->b[i]*traj->xk[i] - traj->a[i]*traj->yk[i];
+    }
+
+    for (i = (traj->size-1);i>0;i--) {
+        traj->xk[i] = traj->xk[i-1];
+        traj->yk[i] = traj->yk[i-1];
+    }
+
+    *qd = traj->yk[0];
+    *qd_dot = (*qd - traj->qd_old)*1000;  //0.001 sample period
+    *qd_ddot = (*qd_dot - traj->qddot_old)*1000;
+
+    traj->qd_old = *qd;
+    traj->qddot_old = *qd_dot;
+}
+
+// to call this function create a variable that steps to the new positions you want to go to, pass this var to step
+// pass a reference to your qd variable your qd_dot variable and your qd_double_dot variable
+// for example
+//  implement_discrete_tf(&trajectory, mystep, &qd, &dot, &ddot);
+
+// to call this function create a variable that steps to the new positions you want to go to, pass this var to step
+// pass a reference to your qd variable your qd_dot variable and your qd_double_dot variable
+// for example
+//  implement_discrete_tf(&trajectory, mystep, &qd, &dot, &ddot);
 
 
 // Loops Calculation Simplification
@@ -217,38 +288,64 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
     // Compute them trajectories
 
-// Step Trajectory
+//    // Step Trajectory
 //    if (mycount % 4000 == 0){
-//        if(theta_desired < 0.1){
-//            theta_desired = 0.5;
+//        if(step < 0.1){
+//            step = PI/6;
 //        } else{
-//            theta_desired = 0.0;
+//            step = 0.0;
+//        }
+//    }
+//
+//implement_discrete_tf(&trajectory, step, &theta_desired, &theta_dot_desired, &theta_double_dot_desired);
+
+    // Trajectory for testing Inv control versus the Feed Forward
+    // Step Trajectory
+//    if (mycount % 4000 == 0){
+//        if(step1 < 0.1){
+//            step1 = 0.25;
+//            step3 = 0.3;
+//        } else{
+//            step1 = 0.85;
+//            step3 = -0.3;
 //        }
 //    }
 
-
-
-
-// Cubic Trajectory
-    tmod = ((mycount%6000) *0.001);
-    if (mycount%6000 < 1000 ){
-        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
-        theta_dot_desired = PI*tmod - PI*tmod*tmod;
-        theta_double_dot_desired = PI - 2*PI*tmod;
-    }else if (mycount%6000 < 3000 ){
-        theta_desired = PI/6;
-        theta_dot_desired = 0;
-        theta_double_dot_desired = 0;
-    }else if (mycount%6000 <4000 ){
-        theta_desired = (-13.3333333333)*PI + 12*PI*tmod - (3.5)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
-        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
-        theta_double_dot_desired = -7*PI + 2*PI*tmod;
-    }else if (mycount%6000 <6000 ){
-        theta_desired = 0;
-        theta_dot_desired = 0;
-        theta_double_dot_desired = 0;
+    if (mycount%8000 == 4000){
+        step1 = 0.25;
+        step3 = 0.3;
+    }
+    else if (mycount%8000 == 0){
+        step1 = 0.85;
+        step3 = -0.3;
     }
 
+implement_discrete_tf(&trajectory, step1, &theta1_desired, &theta1_dot_desired, &theta1_double_dot_desired);
+implement_discrete_tf(&trajectory2, step3, &theta3_desired, &theta3_dot_desired, &theta3_double_dot_desired);
+
+
+//
+//
+//// Cubic Trajectory
+//    tmod = ((mycount%6000) *0.001);
+//    if (mycount%6000 < 1000 ){
+//        theta_desired = (PI/2)*(tmod*tmod) - (PI/3)*(tmod)*(tmod)*(tmod);
+//        theta_dot_desired = PI*tmod - PI*tmod*tmod;
+//        theta_double_dot_desired = PI - 2*PI*tmod;
+//    }else if (mycount%6000 < 3000 ){
+//        theta_desired = PI/6;
+//        theta_dot_desired = 0;
+//        theta_double_dot_desired = 0;
+//    }else if (mycount%6000 <4000 ){
+//        theta_desired = (-13.3333333333)*PI + 12*PI*tmod - (3.5)*PI*tmod*tmod + (PI/3)*tmod*tmod*tmod;
+//        theta_dot_desired = 12*PI - (7)*PI*tmod + (PI)*tmod*tmod;
+//        theta_double_dot_desired = -7*PI + 2*PI*tmod;
+//    }else if (mycount%6000 <6000 ){
+//        theta_desired = 0;
+//        theta_dot_desired = 0;
+//        theta_double_dot_desired = 0;
+//    }
+//
 
 
 
@@ -284,13 +381,16 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     Omega3 = (Omega3_raw + Omega3_old1 + Omega3_old2)/3.0;
 
 
-    error1 = theta_desired - theta1motor;
-    error2 = theta_desired - theta2motor;
-    error3 = theta_desired - theta3motor;
+    error1 = theta1_desired - theta1motor;
+    error2 = theta1_desired - theta2motor;
+    error3 = theta3_desired - theta3motor;
 
 //    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
 //    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
 //    Ik3 = Ik3 + ((error3 + error3_old)/2)*0.001;
+
+
+
 
 
 // Saving Computation time
@@ -300,25 +400,36 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     C21 = p3*cos(theta3motor - theta2motor) * Omega2;
 
 
+
 // Outer Loop
-    a_theta_2 = theta_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (theta_dot_desired - Omega2);
-    a_theta_3 = theta_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (theta_dot_desired - Omega3);
+    a_theta_2 = theta1_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (theta1_dot_desired - Omega2);
+    a_theta_3 = theta3_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (theta3_dot_desired - Omega3);
 
     sintheta2 = sin(theta2motor);
     costheta3 = cos(theta3motor);
 
-    Joint_torque1 = J1*theta_double_dot_desired + Kp1*error1 + Kd1*(theta_dot_desired - Omega1);
+
 
 //    Joint_torque2 = J2*theta_double_dot_desired + Kp2*error2 + Kd2*(theta_dot_desired - Omega2);
 //    Joint_torque3 = J3*theta_double_dot_desired + Kp3*error3 + Kd3*(theta_dot_desired - Omega3);
 // Inner Loop
-    Joint_torque2 = p1*a_theta_2 + D12*a_theta_3 + C12*Omega3 - p4*GRAV*sintheta2;
-    Joint_torque3 = p2*a_theta_3 + D21*a_theta_2 + C21*Omega2 - p5*GRAV*costheta3;
+
+
+    if (choose_inv_dyn_ctrl){
+        Joint_torque2 = p1*a_theta_2 + D12*a_theta_3 + C12*Omega3 - p4*GRAV*sintheta2;
+        Joint_torque3 = p2*a_theta_3 + D21*a_theta_2 + C21*Omega2 - p5*GRAV*costheta3;
+    }else{
+        Joint_torque2 = J2*theta1_double_dot_desired + Kp2*error2 + Kd2*(theta1_dot_desired - Omega2);
+        Joint_torque3 = J3*theta3_double_dot_desired + Kp3*error3 + Kd3*(theta3_dot_desired - Omega3);
+    }
 
 
 
 
 
+
+
+    Joint_torque1 = J1*theta1_double_dot_desired + Kp1*error1 + Kd1*(theta1_dot_desired - Omega1);
 
 // Friction Comp Trajectory
     if(Omega1 > 0.1){
@@ -364,6 +475,8 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //           Ik3 = 0;
 ////           Ik3_old = 0;
 //       }
+
+
 
 
     *tau1 = Joint_torque1 + fric_c1;
@@ -463,7 +576,13 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     Simulink_PlotVar1 = theta1motor;
     Simulink_PlotVar2 = theta2motor;
     Simulink_PlotVar3 = theta3motor;
-    Simulink_PlotVar4 = theta_desired;
+    Simulink_PlotVar4 = theta1_desired;
+//
+//    Simulink_PlotVar1 = theta1_desired;
+//    Simulink_PlotVar2 = theta3_desired;
+//    Simulink_PlotVar3 = step1;
+//    Simulink_PlotVar4 = step3;
+
 
     mycount++;
 }
