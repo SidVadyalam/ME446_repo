@@ -158,7 +158,7 @@ float slope_between_minimum3 = 3.6; // maybe need to tune
 float a_theta_2 = 0;
 float a_theta_3 = 0;
 
-float Kp_outer_2 = 3500;
+float Kp_outer_2 = 6000;
 float Kd_outer_2 = 250;
 float Kp_outer_3 = 6000;
 float Kd_outer_3 = 250;
@@ -287,7 +287,7 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
     // Compute them trajectories
-
+//
 //    // Step Trajectory
 //    if (mycount % 4000 == 0){
 //        if(step < 0.1){
@@ -311,6 +311,9 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //        }
 //    }
 
+
+//    // Modified step trajectory for exciting some of the higher order dynamics
+
     if (mycount%8000 == 4000){
         step1 = 0.25;
         step3 = 0.3;
@@ -322,6 +325,8 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 implement_discrete_tf(&trajectory, step1, &theta1_desired, &theta1_dot_desired, &theta1_double_dot_desired);
 implement_discrete_tf(&trajectory2, step3, &theta3_desired, &theta3_dot_desired, &theta3_double_dot_desired);
+
+
 
 
 //
@@ -403,15 +408,16 @@ implement_discrete_tf(&trajectory2, step3, &theta3_desired, &theta3_dot_desired,
 
 // Outer Loop
     a_theta_2 = theta1_double_dot_desired + Kp_outer_2 * (error2) + Kd_outer_2 * (theta1_dot_desired - Omega2);
-    a_theta_3 = theta3_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (theta3_dot_desired - Omega3);
+    a_theta_3 = theta1_double_dot_desired + Kp_outer_3 * (error3) + Kd_outer_3 * (theta1_dot_desired - Omega3);
 
     sintheta2 = sin(theta2motor);
     costheta3 = cos(theta3motor);
 
 
-
+//
 //    Joint_torque2 = J2*theta_double_dot_desired + Kp2*error2 + Kd2*(theta_dot_desired - Omega2);
 //    Joint_torque3 = J3*theta_double_dot_desired + Kp3*error3 + Kd3*(theta_dot_desired - Omega3);
+
 // Inner Loop
 
 
@@ -573,10 +579,10 @@ implement_discrete_tf(&trajectory2, step3, &theta3_desired, &theta3_dot_desired,
     printInvTheta2 = theoretical_TM2;
     printInvTheta3 = theoretical_TM3;
 
-    Simulink_PlotVar1 = theta1motor;
-    Simulink_PlotVar2 = theta2motor;
-    Simulink_PlotVar3 = theta3motor;
-    Simulink_PlotVar4 = theta1_desired;
+    Simulink_PlotVar1 = theta1_desired - theta1motor;
+    Simulink_PlotVar2 = theta1_desired -theta2motor;
+    Simulink_PlotVar3 = theta3_desired - theta3motor;
+    Simulink_PlotVar4 = 0;
 //
 //    Simulink_PlotVar1 = theta1_desired;
 //    Simulink_PlotVar2 = theta3_desired;
