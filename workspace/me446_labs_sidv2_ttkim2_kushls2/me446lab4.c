@@ -314,8 +314,8 @@ float KPx = 700;
 float KDx = 25;
 float KPy = 700;
 float KDy = 25;
-float KPz = 0;
-float KDz = 0;
+float KPz = 700;
+float KDz = 25;
 
 
 float x_old = 0;
@@ -343,6 +343,98 @@ float Joint_torque_FFx = 0;
 float Joint_torque_FFy = 0;
 float Joint_torque_FFz = 0;
 
+float speed = 0;
+float dist = 0;
+float time_total = 0;
+float curr_time = 0;
+float xa = 0;
+float xb = 0;
+float ya = 0;
+float yb = 0;
+float za = 0;
+float zb = 0;
+float tinit = 0;
+
+
+
+
+
+/* Call helper functions */
+void matrixTranspose(float A[][3], float A_trans[][3]);
+void matrixVectorMultiplication(float A[][3], float B[][1], float C[][1]);
+void matrixMultiplication(float A[][3], float B[][3], float C[][3]);
+void rotationMatrix(float theta, float R[3][3], char axis);
+
+/* Define all your matrices as global variables */
+// 3x3 matrices for example
+float Rzxy[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+float Rzxy_Transpose[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+float JT[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};  // Initialize
+float KD[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};    // Initialize
+float KP[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};    // Initialize
+float KP_R[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};    // Initialize
+float KD_R[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};    // Initialize
+float KD_R_error_dot[3][1] = {{0}, {0}, {0}};    // Initialize
+float KP_R_error[3][1] = {{0}, {0}, {0}};    // Initialize
+float sum_gain_terms[3][1] = {{0}, {0}, {0}};
+float JT_R[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+float Final_Torques[3][1] = {{0}, {0}, {0}};
+
+
+float Rx[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};   // Initialize
+float Ry[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};   // Initialize
+float Rz[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};   // Initialize
+
+// 3x1 vectors for example
+float error_1[3][1] = {{0}, {0}, {0}};
+float error_dot[3][1] = {{0}, {0}, {0}};    // Initialize
+
+
+
+
+
+/* Helper functions to make the code concise
+This goes outside of main function */
+
+// For matrix-vector multiplication (3x3 matrix multiplied by 3x1 vector)
+// This function gets 3x3 matrix (A) and 3x1 vector (B) as arguments then returns their multiplication C = AB
+void matrixVectorMultiplication(float A[][3], float B[][1], float C[][1]) {
+    // Initialize result to zero
+    for(int i=0; i<3; i++) {
+        C[i][0] = 0;
+    }
+
+    // Perform multiplication
+    for(int i=0; i<3; i++) {
+        for(int k=0; k<3; k++) {
+            C[i][0] += A[i][k]*B[k][0];
+        }
+    }
+}
+
+// For matrix multiplication (3x3 matrix multiplied by 3x3 matrix)
+// This function gets 3x3 matrix (A) and 3x3 matrix (B) as arguments then returns their multiplication C = AB
+void matrixMultiplication(float A[][3], float B[][3], float C[][3]) {
+    for(int i=0; i<3; i++) {
+        for(int j=0; j<3; j++) {
+            C[i][j] = 0;
+            for(int k=0; k<3; k++) {
+                C[i][j] += A[i][k]*B[k][j];
+            }
+        }
+    }
+}
+
+// For matrix transpose (3x3 matrix)
+// This function gets 3x3 matrix (A) as arguments then returns its transpose A_trans
+void matrixTranspose(float A[][3], float A_trans[][3]) {
+    // Size of A should be 3x3
+    for(int i=0; i<3; i++) {
+        for(int j=0; j<3; j++) {
+            A_trans[i][j] = A[j][i];
+        }
+    }
+}
 
 
 void mains_code(void);
@@ -373,15 +465,52 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     sinq2 = sin(theta2motor);
     cosq3 = cos(theta3motor);
     sinq3 = sin(theta3motor);
-    JT_11 = -0.254*sinq1*(cosq3 + sinq2);
-    JT_12 = 0.254*cosq1*(cosq3 + sinq2);
-    JT_13 = 0;
-    JT_21 = 0.254*cosq1*(cosq2 - sinq3);
-    JT_22 = 0.254*sinq1*(cosq2 - sinq3);
-    JT_23 = -0.254*(cosq3 + sinq2);
-    JT_31 = -0.254*cosq1*sinq3;
-    JT_32 = -0.254*sinq1*sinq3;
-    JT_33 = -0.254*cosq3;
+    JT_11 = JT[0][0] = -0.254*sinq1*(cosq3 + sinq2);
+    JT_12 = JT[0][1] = 0.254*cosq1*(cosq3 + sinq2);
+    JT_13 = JT[0][2] = 0;
+    JT_21 = JT[1][0] = 0.254*cosq1*(cosq2 - sinq3);
+    JT_22 = JT[1][1] = 0.254*sinq1*(cosq2 - sinq3);
+    JT_23 = JT[1][2] = -0.254*(cosq3 + sinq2);
+    JT_31 = JT[2][0] = -0.254*cosq1*sinq3;
+    JT_32 = JT[2][1] = -0.254*sinq1*sinq3;
+    JT_33 = JT[2][2] = -0.254*cosq3;
+
+
+    // Rotation zxy and its Transpose
+    cosz = cos(thetaz);
+    sinz = sin(thetaz);
+    cosx = cos(thetax);
+    sinx = sin(thetax);
+    cosy = cos(thetay);
+
+
+    RT11 = R11 = Rzxy[0][0] = Rzxy_Transpose[0][0] = cosz*cosy-sinz*sinx*siny;
+    RT21 = R12 = Rzxy[0][1] = Rzxy_Transpose[1][0] = -sinz*cosx;
+    RT31 = R13 = Rzxy[0][2] = Rzxy_Transpose[2][0] = cosz*siny+sinz*sinx*cosy;
+    RT12 = R21 = Rzxy[1][0] = Rzxy_Transpose[0][1] = sinz*cosy+cosz*sinx*siny;
+    RT22 = R22 = Rzxy[1][1] = Rzxy_Transpose[1][1] = cosz*cosx;
+    RT32 = R23 = Rzxy[1][2] = Rzxy_Transpose[2][1] = sinz*siny-cosz*sinx*cosy;
+    RT13 = R31 = Rzxy[2][0] = Rzxy_Transpose[0][2] = -cosx*siny;
+    RT23 = R32 = Rzxy[2][1] = Rzxy_Transpose[1][2] = sinx;
+    RT33 = R33 = Rzxy[2][2] = Rzxy_Transpose[2][2] = cosx*cosy;
+
+
+
+
+    KD[0][0] = KDx;
+    KD[1][1] = KDy;
+    KD[2][2] = KDz;
+
+    KP[0][0] = KPx;
+    KP[1][1] = KPy;
+    KP[2][2] = KPz;
+
+
+
+
+
+
+
 
     x =  0.254*cos(theta1motor)*(cos(theta3motor) + sin(theta2motor));
     y =  0.254*sin(theta1motor)*(cos(theta3motor) + sin(theta2motor));
@@ -487,15 +616,42 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 //    theta2_desired = theta2dh_desired + HALFPI;
 //    theta3_desired = theta3dh_desired + theta2dh_desired;
 
+//
+//    speed = 0.1;
+//    dist = 2*0.254;
+//    time_total = dist/speed;
+//    xa = 0.254;
+//    xb = 0.254;
+//    ya = 0.254;
+//    yb = -0.254;
+//    za = 0.254;
+//    zb = 0.254;
+//    curr_time = mycount % 1000;
+//
+//    if((curr_time < 5)){
+//        xd = 0 + xa;
+//        yd = (yb - ya)*((curr_time - tinit)/time_total) + ya;
+//        zd = 0 + za;
+//
+//    }else{
+//        tinit = curr_time;
+//        yb *= -1;
+//        ya *= -1;
+//        xd = 0 + xa;
+//        yd = (yb - ya)*((curr_time - tinit)/time_total) + ya;
+//        zd = 0 + za;
+//    }
+//
 
-    // Stable Trajectory
+
     xd = 0.254;
-    yd = 0.254;
+    yd = -0.254;
     zd = 0.254;
 
     xd_dot = 0;
     yd_dot = 0;
     zd_dot = 0;
+
 
 
 
@@ -514,6 +670,11 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     error1 = theta1_desired - theta1motor;
     error2 = theta1_desired - theta2motor;
     error3 = theta3_desired - theta3motor;
+
+
+    error_1[0][0] = (xd - x);
+    error_1[1][0] = (yd - y);
+    error_1[2][0] = (zd - z);
 
 //    Ik1 = Ik1 + ((error1 + error1_old)/2)*0.001;
 //    Ik2 = Ik2 + ((error2 + error2_old)/2)*0.001;
@@ -555,6 +716,11 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
     z_dot_old1 = z_dot;
 
 
+
+
+    error_dot[0][0] = (xd_dot - x_dot);
+    error_dot[1][0] = (yd_dot - y_dot);
+    error_dot[2][0] = (zd_dot - z_dot);
 
 
 // Saving Computation time
@@ -643,19 +809,36 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 
 
 
-    Joint_torque1 = JT_11 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_12 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_13 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
-    Joint_torque2 = JT_21 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_22 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_23 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
-    Joint_torque3 = JT_31 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_32 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_33 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
+//    Joint_torque1 = JT_11 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_12 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_13 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
+//    Joint_torque2 = JT_21 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_22 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_23 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
+//    Joint_torque3 = JT_31 * (KPx*(xd - x) + KDx*(xd_dot - x_dot)) + JT_32 * (KPy*(yd - y) + KDy*(yd_dot - y_dot)) + JT_33 * (KPz*(zd - z) + KDz*(zd_dot - z_dot));
+//
+//    // Feed Forward Force
+//
+//    Joint_torque_FFx = JT_13*(F_zcmd/6);
+//    Joint_torque_FFy = JT_23*(F_zcmd/6);
+//    Joint_torque_FFz = JT_33*(F_zcmd/6);
 
-    // Feed Forward Force
 
-    Joint_torque_FFx = JT_13*(F_zcmd/6);
-    Joint_torque_FFy = JT_23*(F_zcmd/6);
-    Joint_torque_FFz = JT_33*(F_zcmd/6);
 
-    *tau1 = Joint_torque1 + Joint_torque_FFx + fric_factor * fric_c1;
-    *tau2 = Joint_torque2 + Joint_torque_FFy + fric_factor * fric_c2;
-    *tau3 = Joint_torque3 + Joint_torque_FFz + fric_factor * fric_c3;
+
+
+    matrixMultiplication(KP, Rzxy_Transpose, KP_R);
+    matrixMultiplication(KD, Rzxy_Transpose, KD_R);
+    matrixVectorMultiplication(KP_R, error_1, KP_R_error);
+    matrixVectorMultiplication(KD_R, error_dot, KD_R_error_dot);
+    sum_gain_terms[0][0] = KD_R_error_dot[0][0] + KP_R_error[0][0];
+    sum_gain_terms[1][0] = KD_R_error_dot[1][0] + KP_R_error[1][0];
+    sum_gain_terms[2][0] = KD_R_error_dot[2][0] + KP_R_error[2][0];
+    matrixMultiplication(JT, Rzxy, JT_R);
+    matrixVectorMultiplication(JT_R, sum_gain_terms, Final_Torques);
+
+
+
+
+    *tau1 = Final_Torques[0][0] + fric_factor * fric_c1;
+    *tau2 = Final_Torques[1][0] + fric_factor * fric_c2;
+    *tau3 = Final_Torques[2][0] + fric_factor * fric_c3;
 
 
 
