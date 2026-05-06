@@ -461,29 +461,52 @@ typedef struct point_tag {
 #define ZSTIFF 2
 #define XZSTIFF 3
 
-#define NUM_POINTS 19
+#define NUM_POINTS 20
 // find all your own x,y,z points and angles for weaking.
+//point point_array[NUM_POINTS] = { { 0.04, 0.35, 0.3, 0, XYZSTIFF, 0},  // point 1
+//                                  { 0.04, 0.35, 0.125, 0, XYZSTIFF, 0},  // point 2
+//                                  { 0.04, 0.35, 0.125, 0, XYZSTIFF, 1},  // point 3
+//                                  { 0.04, 0.35, 0.3, 0, XYZSTIFF, 0},  // point 4
+//                                  { 0.12, 0.08, 0.43, 0, XYZSTIFF, 0},  // point 5
+//                                  { 0.39, 0.09, 0.2, 0, XYZSTIFF, 0},  // point 6 Next to Zig-Zag
+//                                  { 0.42, 0.05, 0.2, 0, XYZSTIFF, 0},  // point 7
+//                                  { 0.42, 0.04, 0.2, 0, XYZSTIFF, 0},  // point 8
+//                                  { 0.41, 0.03, 0.2, 0, XYZSTIFF, 0},  // point 9
+//                                  { 0.35, 0.04, 0.2, 0, XYZSTIFF, 0},  // point 10
+//                                  { 0.33, 0.03, 0.2, 0, XYZSTIFF, 0},  // point 11
+//                                  { 0.33, 0.02, 0.2, 0, XYZSTIFF, 0},  // point 12
+//                                  { 0.33, 0.01, 0.2, 0, XYZSTIFF, 0},  // point 13
+//                                  { 0.39, -0.07, 0.2, 0, XYZSTIFF, 0},  // point 14 Outside Zig-Zag
+//                                  { 0.39, -0.07, 0.33, 0, XYZSTIFF, 0},  // point 15
+//                                  { 0.25, 0.18, 0.33, 0, XYZSTIFF, 0},  // point 16
+//                                  { 0.25, 0.18, 0.285, 0, XYZSTIFF, 0},  // point 17
+//                                  { 0.25, 0.18, 0.285, 0, XYZSTIFF, 1},  // point 18
+//                                  { 0.25, 0, 0.5, 0, XYZSTIFF, 1},  // point 19
+//};
+
+
 point point_array[NUM_POINTS] = { { 0.04, 0.35, 0.3, 0, XYZSTIFF, 0},  // point 1
-                                  { 0.04, 0.35, 0.13, 0, XYZSTIFF, 0},  // point 2
-                                  { 0.04, 0.35, 0.13, 0, XYZSTIFF, 1},  // point 3
+                                  { 0.04, 0.35, 0.125, 0, XYZSTIFF, 0},  // point 2
+                                  { 0.04, 0.35, 0.125, 0, XYZSTIFF, 1},  // point 3
                                   { 0.04, 0.35, 0.3, 0, XYZSTIFF, 0},  // point 4
                                   { 0.12, 0.08, 0.43, 0, XYZSTIFF, 0},  // point 5
                                   { 0.39, 0.09, 0.2, 0, XYZSTIFF, 0},  // point 6 Next to Zig-Zag
-                                  { 0.42, 0.05, 0.2, 0, XYZSTIFF, 0},  // point 7
-                                  { 0.42, 0.04, 0.2, 0, XYZSTIFF, 0},  // point 8
-                                  { 0.41, 0.03, 0.2, 0, XYZSTIFF, 0},  // point 9
-                                  { 0.35, 0.04, 0.2, 0, XYZSTIFF, 0},  // point 10
-                                  { 0.33, 0.03, 0.2, 0, XYZSTIFF, 0},  // point 11
-                                  { 0.33, 0.02, 0.2, 0, XYZSTIFF, 0},  // point 12
-                                  { 0.33, 0.01, 0.2, 0, XYZSTIFF, 0},  // point 13
+                                  { 0.42, 0.05, 0.2, 0, ZSTIFF, 0},  // point 7
+                                  { 0.42, 0.04, 0.2, 0, ZSTIFF, 0},  // point 8
+                                  { 0.41, 0.03, 0.2, 0, ZSTIFF, 0},  // point 9
+                                  { 0.35, 0.04, 0.2, 0, ZSTIFF, 0},  // point 10
+                                  { 0.33, 0.03, 0.2, 0, ZSTIFF, 0},  // point 11
+                                  { 0.33, 0.02, 0.2, 0, ZSTIFF, 0},  // point 12
+                                  { 0.33, 0.01, 0.2, 0, ZSTIFF, 0},  // point 13
                                   { 0.39, -0.07, 0.2, 0, XYZSTIFF, 0},  // point 14 Outside Zig-Zag
                                   { 0.39, -0.07, 0.33, 0, XYZSTIFF, 0},  // point 15
                                   { 0.25, 0.18, 0.33, 0, XYZSTIFF, 0},  // point 16
-                                  { 0.25, 0.18, 0.285, 0, XYZSTIFF, 0},  // point 17
-                                  { 0.25, 0.18, 0.285, 0, XYZSTIFF, 1},  // point 18
-                                  { 0.25, 0, 0.5, 0, XYZSTIFF, 1},  // point 19
-};
+                                  { 0.25, 0.18, 0.28, 0, XYZSTIFF, 0},  // point 17
+                                  { 0.25, 0.18, 0.28, 0, XYZSTIFF, 1},  // point 18 // Start testing with 0.285
+                                  { 0.25, 0.18, 0.5, 0, XYZSTIFF, 0},  // point 19
+                                  { 0.254, 0.0, 0.504, 0, XYZSTIFF, 0},  // point 20
 
+};
 
 
 
@@ -742,6 +765,12 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
             deltaz = 0;
             time_total = 1;
         }
+
+
+
+
+
+
         //
         //        if ((index >= 6) && (index <= 13)){
         //            KPx = 0;
